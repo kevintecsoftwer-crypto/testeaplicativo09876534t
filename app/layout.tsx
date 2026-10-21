@@ -46,6 +46,8 @@ export default function RootLayout({
         <meta name="geo.placename" content="Sorocaba" />
         <meta name="geo.position" content="-23.5015;-47.4522" />
         <meta name="ICBM" content="-23.5015, -47.4522" />
+      </head>
+      <body className="antialiased">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -81,8 +83,6 @@ export default function RootLayout({
             }),
           }}
         />
-      </head>
-      <body className="antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
