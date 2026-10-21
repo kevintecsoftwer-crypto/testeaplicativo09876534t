@@ -1,7 +1,7 @@
 'use client'
 
 import useSWR from 'swr'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ReviewsCarousel } from '@/components/reviews-carousel'
+import { PreAtendimentoDialog } from '@/components/pre-atendimento-dialog'
 
 type DeviceType = 'Celular' | 'Tablet' | 'Apple Watch' | 'Outro aparelho'
 type Step = 1 | 2 | 3 | 4 | 5 | 6
@@ -280,6 +281,8 @@ export default function Page() {
   const [ratingFeedbackDrafts, setRatingFeedbackDrafts] = useState<Record<string, string>>({})
   const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({})
   const [validationMessage, setValidationMessage] = useState('')
+  const [preAtendimentoOpen, setPreAtendimentoOpen] = useState(false)
+  const [preAtendimentoSubject, setPreAtendimentoSubject] = useState('')
   const configuratorRef = useRef<HTMLElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
   const defectContentRef = useRef<HTMLDivElement>(null)
@@ -548,6 +551,15 @@ export default function Page() {
     window.open(`https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`, '_blank', 'noopener,noreferrer')
   }
 
+  function openPreAtendimento(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    const label = event.currentTarget.textContent || ''
+    setPreAtendimentoSubject(/urgente/i.test(label) ? 'Atendimento urgente' : '')
+    setPreAtendimentoOpen(true)
+  }
+
+  const closePreAtendimento = useCallback(() => setPreAtendimentoOpen(false), [])
+
   function sendToWhatsapp() {
   if (!name.trim() || !contactSource || (contactSource === 'Outro' && !otherContactSource.trim())) {
       setValidationMessage(!name.trim() ? 'Informe seu nome para continuar.' : contactSource === 'Outro' && !otherContactSource.trim() ? 'Descreva como conheceu a Centro Cell.' : 'Selecione como conheceu a Centro Cell.')
@@ -577,13 +589,21 @@ export default function Page() {
 
   return (
     <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#D9DDDF] text-[#30363A]">
+      <PreAtendimentoDialog
+        open={preAtendimentoOpen}
+        initialSubject={preAtendimentoSubject}
+        defaultName={name}
+        whatsappNumber={whatsappNumber}
+        onClose={closePreAtendimento}
+        onNameConfirmed={setName}
+      />
       <header className="sticky top-0 z-10 border-b border-[#C4CBCD] bg-[#FFFFFF]/95 backdrop-blur-md">
         <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:min-h-20 sm:px-5 lg:px-8">
           <a href="#configurador" aria-label="Centro Cell Sorocaba - atendimento" className="flex shrink-0 items-center gap-2.5"><img src={logoUrl} alt="Centro Cell Sorocaba" className="size-10 rounded-full object-cover sm:size-12" /><span className="hidden text-sm font-bold tracking-[0.18em] sm:inline">CENTRO <span className="text-[#ef1717]">CELL</span></span></a>
           <nav className="hidden items-center gap-5 text-sm text-[#626B70] lg:flex" aria-label="Navegação principal"><a href="#sobre" className="transition hover:text-slate-950">Quem somos</a><a href="#assistencia" className="transition hover:text-slate-950">Serviços</a><a href="#localizacao" className="transition hover:text-slate-950">Como chegar</a><a href="#avaliacoes" className="transition hover:text-slate-950">O que dizem</a></nav>
-          <a href={whatsappUrl} target="_blank" rel="noreferrer" className="shrink-0 rounded-lg bg-[#C92743] px-3 py-2.5 text-center text-xs font-bold text-white transition hover:bg-[#A91F37] sm:px-4 sm:text-sm">Preciso de atendimento urgente</a>
+          <a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={openPreAtendimento} className="shrink-0 rounded-lg bg-[#C92743] px-3 py-2.5 text-center text-xs font-bold text-white transition hover:bg-[#A91F37] sm:px-4 sm:text-sm">Preciso de atendimento urgente</a>
         </div>
-        <nav className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-4 pb-3 text-xs text-[#626B70] lg:hidden" aria-label="Atalhos úteis"><a href="#assistencia" className="shrink-0 hover:text-slate-950">Serviços</a><a href="#localizacao" className="shrink-0 hover:text-slate-950">Como chegar</a><a href={whatsappUrl} target="_blank" rel="noreferrer" className="shrink-0 text-[#ff4545] hover:text-slate-950">WhatsApp</a></nav>
+        <nav className="mx-auto flex max-w-6xl gap-5 overflow-x-auto px-4 pb-3 text-xs text-[#626B70] lg:hidden" aria-label="Atalhos úteis"><a href="#assistencia" className="shrink-0 hover:text-slate-950">Serviços</a><a href="#localizacao" className="shrink-0 hover:text-slate-950">Como chegar</a><a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={openPreAtendimento} className="shrink-0 text-[#ff4545] hover:text-slate-950">WhatsApp</a></nav>
       </header>
 
       {atendimentos.some((item) => !item.evaluatedAt) && <section id="historico" className="mx-auto max-w-6xl px-4 py-10 sm:px-5 lg:px-8"><div className="rounded-3xl border border-[#C4CBCD] bg-white p-5 sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#C92743]">Histórico neste dispositivo</p><h2 className="mt-2 text-3xl font-black tracking-tight">Como foi sua experiência?</h2><p className="mt-2 text-sm text-[#626B70]">Os atendimentos ficam salvos somente neste navegador.</p><div className="mt-6 grid gap-4">{atendimentos.filter((item) => !item.evaluatedAt).map((item) => <article key={item.protocol} className="rounded-2xl border border-[#E1E3E3] bg-[#FAFAF8] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-bold">{item.device} · {item.brand} · {item.model || 'Modelo não informado'}</p><p className="mt-1 text-xs text-[#626B70]">Protocolo {item.protocol} · Atendimento: {new Date(item.date).toLocaleDateString('pt-BR')}{item.evaluatedAt ? ` · Avaliado: ${new Date(item.evaluatedAt).toLocaleDateString('pt-BR')}` : ''}</p><p className="mt-2 text-sm text-[#626B70]">{item.problems.join(', ') || 'Sem problema informado'}</p></div>{item.rating ? <p className="text-sm font-bold text-[#C92743]">{item.rating}/5</p> : null}</div><div className="mt-4 flex flex-wrap items-center gap-1" aria-label={`Avaliação do atendimento ${item.protocol}`}>{[1,2,3,4,5].map((star) => <button key={star} type="button" aria-label={`${star} estrela${star > 1 ? 's' : ''}`} aria-pressed={item.rating === star} disabled={Boolean(item.rating) && !editingRatings[item.protocol]} onClick={() => item.rating ? setRatingDrafts((current) => ({ ...current, [item.protocol]: star })) : (() => { const updated = atendimentos.map((entry) => entry.protocol === item.protocol ? { ...entry, rating: star } : entry); writeAtendimentosCookie(updated); setAtendimentos(updated) })()} className={`text-2xl leading-none disabled:cursor-default ${(ratingDrafts[item.protocol] || item.rating) && star <= (ratingDrafts[item.protocol] || item.rating || 0) ? 'text-[#F59E0B]' : 'text-[#C4CBCD]'}`}>★</button>)}{item.rating && !editingRatings[item.protocol] && <button type="button" onClick={() => { setEditingRatings((current) => ({ ...current, [item.protocol]: true })); setRatingFeedbackDrafts((current) => ({ ...current, [item.protocol]: item.feedback || '' })) }} className="ml-3 rounded-lg border border-[#C92743] px-3 py-1 text-xs font-bold text-[#C92743]">Alterar avaliação</button>}</div>{editingRatings[item.protocol] && <div className="mt-3"><textarea value={ratingFeedbackDrafts[item.protocol] ?? ''} onChange={(event) => setRatingFeedbackDrafts((current) => ({ ...current, [item.protocol]: event.target.value }))} placeholder="Escreva sua nova avaliação" rows={3} className="w-full rounded-xl border border-[#DADCD8] bg-white px-3 py-2 text-sm outline-none focus:border-[#C92743]" /><p className="mt-2 text-xs text-[#626B70]">Escolha as novas estrelas, escreva sua avaliação e envie quando estiver pronto.</p><button type="button" disabled={!ratingDrafts[item.protocol]} onClick={() => changeRating(item)} className="mt-3 rounded-xl bg-[#C92743] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">Enviar reavaliação</button></div>}{item.evaluatedAt ? <p className="mt-3 text-xs font-semibold text-[#626B70]">Avaliação enviada. Clique em uma estrela para registrar uma alteração e enviar a atualização pelo WhatsApp.</p> : item.rating === 5 ? <a href={googleReviewUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-xl bg-[#C92743] px-4 py-2 text-sm font-bold text-white">Avaliar no Google</a> : item.rating && item.rating <= 4 ? <div className="mt-3"><textarea value={feedbackDrafts[item.protocol] ?? item.feedback ?? ''} onChange={(event) => setFeedbackDrafts((current) => ({ ...current, [item.protocol]: event.target.value }))} placeholder="O que podemos melhorar?" rows={3} className="w-full rounded-xl border border-[#DADCD8] bg-white px-3 py-2 text-sm outline-none focus:border-[#C92743]" /><button type="button" onClick={() => sendFeedbackToWhatsapp(item)} className="mt-2 rounded-xl border border-[#C92743] px-4 py-2 text-sm font-bold text-[#C92743]">Enviar sugestão pelo WhatsApp</button>{feedbackSent[item.protocol] && <p className="mt-2 text-xs font-semibold text-[#2F7D4A]">Mensagem preparada no WhatsApp.</p>}</div> : null}</article>)}</div></div></section>}
@@ -619,8 +639,8 @@ export default function Page() {
 
       <section id="localizacao" className="mx-auto max-w-6xl px-5 py-16 lg:px-8"><div className="mb-8"><p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#C92743]">Como chegar</p><h2 className="text-4xl font-black tracking-[-0.05em]">Estamos no Centro de Sorocaba</h2><p className="mt-3 text-[#626B70]">Localização oficial da Centro Cell em Sorocaba. Use o ponto exato do perfil no Google Maps para traçar sua rota.</p></div><div className="grid gap-6 lg:grid-cols-[1.3fr_.7fr]"><div className="overflow-hidden rounded-3xl border border-[#C4CBCD] bg-[#E9ECED]"><iframe title="Mapa da Centro Cell Sorocaba" src="https://www.openstreetmap.org/export/embed.html?bbox=-47.461%2C-23.503%2C-47.448%2C-23.492&layer=mapnik&marker=-23.5002386%2C-47.4544519" className="h-72 w-full grayscale-[.35] sm:h-80" loading="lazy" /></div><div className="flex flex-col justify-center gap-3"><a href={googleDirectionsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-3 rounded-xl border border-[#DADCE0] bg-white px-5 py-3 font-bold text-[#202124] shadow-sm transition hover:bg-[#F8F9FA]"><img src="https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/google-maps/default.svg" alt="" className="size-6 object-contain" /> Seguir pelo Google Maps</a><a href={wazeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-3 rounded-xl bg-[#343A40] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#23272B]"><img src="https://cdn.jsdelivr.net/gh/glincker/thesvg@main/public/icons/waze/default.svg" alt="" className="size-6 object-contain" /> Seguir pelo Waze</a><a href={googleMapsUrl} target="_blank" rel="noreferrer" className="text-center text-sm text-[#697583] underline underline-offset-4 hover:text-slate-950">Ver perfil oficial e avaliações</a></div></div></section>
 
-      <section id="contato" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-2 lg:px-8"><div><p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#C92743]">Fale com a gente</p><h2 className="text-4xl font-black tracking-[-0.05em]">Vamos cuidar do seu aparelho?</h2><p className="mt-4 flex items-start gap-3 text-[#626B70]"><MapPin className="mt-1 size-5 shrink-0 text-[#C92743]" />Localização oficial no perfil da Centro Cell no Google Maps.</p></div><div className="flex flex-col gap-3 sm:flex-row sm:items-start"><a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#25d366] px-5 py-3 font-bold text-black hover:bg-[#44df7c]"><MessageCircle className="size-4" /> Falar pelo WhatsApp</a><a href="#localizacao" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-5 py-3 font-bold hover:bg-slate-200"><MapPin className="size-4" /> Como chegar</a></div></section>
-      <footer className="border-t border-[#C4CBCD] px-5 py-10"><div className="mx-auto flex max-w-6xl flex-col gap-8 text-sm text-[#697583]/50 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-bold text-slate-950">Centro Cell <span className="text-[#ef1717]">Sorocaba</span></p><p className="mt-2 max-w-xs leading-6">Assistência técnica, eletrônicos e acessórios.</p></div><nav aria-label="Links úteis" className="flex flex-wrap gap-x-10 gap-y-3"><a href="#assistencia" className="hover:text-slate-950">Serviços</a><a href="#localizacao" className="hover:text-slate-950">Como chegar</a><a href={whatsappUrl} target="_blank" rel="noreferrer" className="rounded-lg bg-[#25D366] px-4 py-2 font-bold text-[#073B1A] transition hover:bg-[#20BD5A]">WhatsApp</a></nav></div></footer>
+      <section id="contato" className="mx-auto grid max-w-6xl gap-8 px-5 py-16 lg:grid-cols-2 lg:px-8"><div><p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#C92743]">Fale com a gente</p><h2 className="text-4xl font-black tracking-[-0.05em]">Vamos cuidar do seu aparelho?</h2><p className="mt-4 flex items-start gap-3 text-[#626B70]"><MapPin className="mt-1 size-5 shrink-0 text-[#C92743]" />Localização oficial no perfil da Centro Cell no Google Maps.</p></div><div className="flex flex-col gap-3 sm:flex-row sm:items-start"><a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={openPreAtendimento} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#25d366] px-5 py-3 font-bold text-black hover:bg-[#44df7c]"><MessageCircle className="size-4" /> Falar pelo WhatsApp</a><a href="#localizacao" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-5 py-3 font-bold hover:bg-slate-200"><MapPin className="size-4" /> Como chegar</a></div></section>
+      <footer className="border-t border-[#C4CBCD] px-5 py-10"><div className="mx-auto flex max-w-6xl flex-col gap-8 text-sm text-[#697583]/50 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-bold text-slate-950">Centro Cell <span className="text-[#ef1717]">Sorocaba</span></p><p className="mt-2 max-w-xs leading-6">Assistência técnica, eletrônicos e acessórios.</p></div><nav aria-label="Links úteis" className="flex flex-wrap gap-x-10 gap-y-3"><a href="#assistencia" className="hover:text-slate-950">Serviços</a><a href="#localizacao" className="hover:text-slate-950">Como chegar</a><a href={whatsappUrl} target="_blank" rel="noreferrer" onClick={openPreAtendimento} className="rounded-lg bg-[#25D366] px-4 py-2 font-bold text-[#073B1A] transition hover:bg-[#20BD5A]">WhatsApp</a></nav></div></footer>
     </main>
   )
 }
